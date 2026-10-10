@@ -230,6 +230,70 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
+// 5. Generate STAR Success Story Draft
+app.post("/api/generate-star-story", async (req, res) => {
+  try {
+    const { storyTitle, rawSituation, rawTask, rawAction, rawResult, targetCompetency } = req.body;
+
+    const prompt = `
+Sen kıdemli bir mülakat ve kariyer koçusun. Kullanıcının iş hayatındaki bir deneyimini STAR (Situation, Task, Action, Result) metodolojisine göre profesyonel, etkileyici ve mülakatlarda doğrudan anlatılabilecek bir başarı hikayesi taslağına dönüştüreceksin.
+
+Hikaye Başlığı / Konusu: ${storyTitle || "Başarı Hikayesi"}
+Hedef Yetkinlik / Soru Tipi: ${targetCompetency || "Liderlik, Problem Çözme veya Kriz Yönetimi"}
+1. Durum (Situation): ${rawSituation}
+2. Görev (Task): ${rawTask}
+3. Aksiyon (Action): ${rawAction}
+4. Sonuç (Result / Metrics): ${rawResult}
+
+Lütfen şu JSON formatında yapılandırılmış profesyonel bir hikaye taslağı üret:
+- polishedTitle: Akılda kalıcı, güçlü bir hikaye başlığı (string)
+- elevatorPitch: Mülakatçıyı ilk 30 saniyede etkileyecek kısa özet giriş (string)
+- structuredStar: {
+    situation: "Profesyonel dille yeniden yazılmış Situation paragrafı",
+    task: "Profesyonel dille yeniden yazılmış Task paragrafı",
+    action: "Adayın aldığı stratejik aksiyonlar (string)",
+    result: "Ölçülebilir metrikler ve iş sonuçları ile güçlendirilmiş Result paragrafı"
+  }
+- keyTakeaways: Bu hikayenin mülakatçılara vereceği 3 anahtar mesaj / yetkinlik sinyali (array of strings)
+- sampleSpokenScript: Adayın mülakatta bu hikayeyi akıcı bir şekilde anlatabileceği hazır konuşma metni (string)
+`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.8-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            polishedTitle: { type: Type.STRING },
+            elevatorPitch: { type: Type.STRING },
+            structuredStar: {
+              type: Type.OBJECT,
+              properties: {
+                situation: { type: Type.STRING },
+                task: { type: Type.STRING },
+                action: { type: Type.STRING },
+                result: { type: Type.STRING },
+              },
+              required: ["situation", "task", "action", "result"],
+            },
+            keyTakeaways: { type: Type.ARRAY, items: { type: Type.STRING } },
+            sampleSpokenScript: { type: Type.STRING },
+          },
+          required: ["polishedTitle", "elevatorPitch", "structuredStar", "keyTakeaways", "sampleSpokenScript"],
+        },
+      },
+    });
+
+    const data = JSON.parse(response.text || "{}");
+    res.json(data);
+  } catch (error: any) {
+    console.error("Generate star story error:", error);
+    res.status(500).json({ error: error.message || "Başarı hikayesi oluşturulurken hata oluştu." });
+  }
+});
+
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
