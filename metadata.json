@@ -1,0 +1,6 @@
+{
+  "name": "CareerPulse AI - Interview & Career Coach",
+  "description": "AI-powered interview simulator, question generator from interviewer perspective, training gap analyzer, and career coach.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
